@@ -20,7 +20,7 @@ if __name__ == "__main__":
 	try:
 		#t = AsyncSniffer(prn=lambda x: x.summary(), filter=flt, store=False)
 		#datetime.now()
-		t = AsyncSniffer(prn=lambda x: (datetime.now()+": "+x.summary()+" ttl:%s"%x[IP].ttl+" tos:%02X"%x[IP].tos+" HexData: "+x[Raw].load.hex()+" StrData: %s"%x[Raw].load) if(x[IP].proto==1) else x.summary(), filter=flt, store=False)
+		t = AsyncSniffer(prn=lambda x: ("%s"%datetime.now()+": "+x.summary()+" ttl:%s"%x[IP].ttl+" tos:%02X"%x[IP].tos+" HexData: "+x[Raw].load.hex()+" StrData: %s"%x[Raw].load) if(x[IP].proto==1) else x.summary(), filter=flt, store=False)
 		t.start()
 		#time.sleep(20)
 		#t.stop()
