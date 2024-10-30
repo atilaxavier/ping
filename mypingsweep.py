@@ -32,7 +32,7 @@ def meuping(lista_ips):
 	mydata.Raw = mydata.Raw + '#'*(PING_SIZE - len(mydata.Raw.encode('utf-8')))
 
 	#with Bar('Pingando', fill='#', suffix='%(percent).1f%% - %(eta)ds') as bar:	# Para mostrar barra de progresso 
-	with alive_bar(len(lista_ips), title='Pingando', bar='blocks', spinner='twirls') as bar:	# Para mostrar barra de progresso do alive_bar
+	with alive_bar(len(lista_ips), title='Pingando', bar='blocks', spinner='triangles') as bar:	# Para mostrar barra de progresso do alive_bar
 
 		start_t = time.time()
 		for ip in lista_ips:
