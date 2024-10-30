@@ -61,7 +61,8 @@ if __name__ == '__main__':
 	responding = []
 	network = netaddr.IPNetwork(net)
 	n_size = network.size
-	TOTAL_TIMEOUT = ESTIMATED_LATENCY_MS * 1e-3 * n_size
+	#TOTAL_TIMEOUT = ESTIMATED_LATENCY_MS * 1e-3 * n_size
+	TOTAL_TIMEOUT = 1e-3 * n_size
 	print("Vai esperar %3.2f s para receber respostas"%TOTAL_TIMEOUT)
 	
 
