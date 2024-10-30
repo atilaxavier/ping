@@ -11,7 +11,8 @@ import threading
 import time
 #from atpbar import flush
 #from scapy.all import *
-from scapy.all import send, sendp, IP, ICMP, AsyncSniffer, conf
+from scapy.all import send, sendp, IP, ICMP, AsyncSniffer
+from progress.bar import Bar
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
@@ -21,23 +22,28 @@ TOTAL_TIMEOUT = 10 # se for 40ms por ping, deveria ser network.size*0.04.
 ESTIMATED_LATENCY_MS = 20
 INTER = 0.005
 COUNT = 3
+PING_SIZE = 56
 
 def meuping(lista_ips):
 	mydata = threading.local()
 	mydata.res = {}
 	mydata.Raw = 'Mypingsweep: veni, vidi, vici!'
-	start_t = time.time()
-	for ip in lista_ips:
-		# Send & wait for response for the ICMP Echo Request packet
-		#print('ping %s'%ip)
+	mydata.Raw = mydata.Raw + '#'*(PING_SIZE - len(mydata.Raw.encode('utf-8')))
 
-		if (sys.platform == 'linux'):
-			reply = send( IP(dst=str(ip)) / ICMP() / mydata.Raw, return_packets=True, verbose=False, realtime = True, inter = INTER, count = COUNT )
-		else:
-			reply = sendp( IP(dst=str(ip)) / ICMP() / mydata.Raw, return_packets=True, verbose=False, realtime = True, inter = INTER, count = COUNT )
-		mydata.res['%s'%ip] = reply[0][IP].time
-	end_t = time.time()
-	print("Pingou %d enderecos em %s segundos"%(len(lista_ips),end_t-start_t))
+	with Bar('Pingando', fill='#', suffix='%(percent).1f%% - %(eta)ds') as bar:	# Para mostrar barra de progresso 
+		start_t = time.time()
+		for ip in lista_ips:
+			# Send & wait for response for the ICMP Echo Request packet
+			#print('ping %s'%ip)
+
+			if (sys.platform == 'linux'):
+				reply = send( IP(dst=str(ip)) / ICMP() / mydata.Raw, return_packets=True, verbose=False, realtime = True, inter = INTER, count = COUNT )
+			else:
+				reply = sendp( IP(dst=str(ip)) / ICMP() / mydata.Raw, return_packets=True, verbose=False, realtime = True, inter = INTER, count = COUNT )
+			mydata.res['%s'%ip] = reply[0][IP].time
+			bar.next()	# Avanca barra de progresso
+		end_t = time.time()
+	print("Pingou %d enderecos em %s"%(len(lista_ips),calcula_tempo(end_t-start_t)))
 	return(mydata.res)
 
 def prepara_end_rede(end_rede):
@@ -48,6 +54,22 @@ def prepara_end_rede(end_rede):
 	for i in aux:
 		aa = aa + i + '.'
 	return(aa.rstrip("."))
+
+def calcula_tempo(interval_secs):
+	if interval_secs > 3600:
+		t_h = interval_secs // 3600
+		t_m = (interval_secs % 3600) // 60
+		t_s = ((interval_secs % 3600) // 60) % 60
+		res = ("%3.2fh:%3.2fm:%3.2fs"%(t_h, t_m, t_s))
+	elif TOTAL_TIMEOUT > 60:
+		t_m = interval_secs // 60
+		t_s = interval_secs % 60
+		res = ("%3.2fm:%3.2fs"%(t_m, t_s))
+	else:
+		t_s = interval_secs
+		res = ("%3.2fs"%(t_s))
+
+	return(res)
 
 	
 if __name__ == '__main__':
@@ -65,7 +87,8 @@ if __name__ == '__main__':
 	n_size = network.size
 	#TOTAL_TIMEOUT = ESTIMATED_LATENCY_MS * 1e-3 * n_size
 	TOTAL_TIMEOUT = 2 * COUNT * INTER * n_size
-	print("Vai esperar %3.2f s para receber respostas"%TOTAL_TIMEOUT)
+
+	print("Vai esperar %s para receber respostas"%calcula_tempo(TOTAL_TIMEOUT))
 	
 
 	sniff_results = [] 
