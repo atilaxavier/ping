@@ -13,6 +13,7 @@ import time
 #from scapy.all import *
 from scapy.all import send, sendp, IP, ICMP, AsyncSniffer
 from progress.bar import Bar
+from alive_progress import alive_bar
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
@@ -30,7 +31,9 @@ def meuping(lista_ips):
 	mydata.Raw = 'Mypingsweep: veni, vidi, vici!'
 	mydata.Raw = mydata.Raw + '#'*(PING_SIZE - len(mydata.Raw.encode('utf-8')))
 
-	with Bar('Pingando', fill='#', suffix='%(percent).1f%% - %(eta)ds') as bar:	# Para mostrar barra de progresso 
+	#with Bar('Pingando', fill='#', suffix='%(percent).1f%% - %(eta)ds') as bar:	# Para mostrar barra de progresso 
+	with alive_bar(len(lista_ips), title='Pingando', bar='blocks', spinner='twirls') as bar:	# Para mostrar barra de progresso do alive_bar
+
 		start_t = time.time()
 		for ip in lista_ips:
 			# Send & wait for response for the ICMP Echo Request packet
@@ -41,7 +44,8 @@ def meuping(lista_ips):
 			else:
 				reply = sendp( IP(dst=str(ip)) / ICMP() / mydata.Raw, return_packets=True, verbose=False, realtime = True, inter = INTER, count = COUNT )
 			mydata.res['%s'%ip] = reply[0][IP].time
-			bar.next()	# Avanca barra de progresso
+			#bar.next()	# Avanca barra de progresso
+			bar() #alive_bar
 		end_t = time.time()
 	print("Pingou %d enderecos em %s"%(len(lista_ips),calcula_tempo(end_t-start_t)))
 	return(mydata.res)
