@@ -40,7 +40,7 @@ def meuping(lista_ips):
 			#print('ping %s'%ip)
 
 			if (sys.platform == 'linux'):
-				reply = send( IP(dst=str(ip)) / ICMP() / mydata.Raw, return_packets=True, verbose=False, realtime = False, inter = INTER, count = COUNT )
+				reply = sendp( IP(dst=str(ip)) / ICMP() / mydata.Raw, return_packets=True, verbose=False, realtime = True, inter = INTER, count = COUNT )
 			else:
 				reply = sendp( IP(dst=str(ip)) / ICMP() / mydata.Raw, return_packets=True, verbose=False, realtime = True, inter = INTER, count = COUNT )
 			mydata.res['%s'%ip] = reply[0][IP].time
