@@ -19,20 +19,22 @@ logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 PING_TIMEOUT = 3
 TOTAL_TIMEOUT = 10 # se for 40ms por ping, deveria ser network.size*0.04.
 ESTIMATED_LATENCY_MS = 20
+INTER = 0.005
+COUNT = 3
 
 def meuping(lista_ips):
 	mydata = threading.local()
 	mydata.res = {}
-	mydata.Raw = 'Mypingsweep2: veni, vidi, vici!'
+	mydata.Raw = 'Mypingsweep: veni, vidi, vici!'
 	start_t = time.time()
 	for ip in lista_ips:
 		# Send & wait for response for the ICMP Echo Request packet
 		#print('ping %s'%ip)
 
 		if (sys.platform == 'linux'):
-			reply = send( IP(dst=str(ip)) / ICMP() / mydata.Raw, return_packets=True, verbose=False, realtime = True )
+			reply = send( IP(dst=str(ip)) / ICMP() / mydata.Raw, return_packets=True, verbose=False, realtime = True, inter = INTER, count = COUNT )
 		else:
-			reply = sendp( IP(dst=str(ip)) / ICMP() / mydata.Raw, return_packets=True, verbose=False, realtime = True )
+			reply = sendp( IP(dst=str(ip)) / ICMP() / mydata.Raw, return_packets=True, verbose=False, realtime = True, inter = INTER, count = COUNT )
 		mydata.res['%s'%ip] = reply[0][IP].time
 	end_t = time.time()
 	print("Pingou %d enderecos em %s segundos"%(len(lista_ips),end_t-start_t))
@@ -62,11 +64,11 @@ if __name__ == '__main__':
 	network = netaddr.IPNetwork(net)
 	n_size = network.size
 	#TOTAL_TIMEOUT = ESTIMATED_LATENCY_MS * 1e-3 * n_size
-	TOTAL_TIMEOUT = 1e-3 * n_size
+	TOTAL_TIMEOUT = 2 * COUNT * INTER * n_size
 	print("Vai esperar %3.2f s para receber respostas"%TOTAL_TIMEOUT)
 	
 
-	t_results = [] 
+	sniff_results = [] 
 	l_ips = []
 	for ip in network:
 		if ip == network.network or ip == network.broadcast:
@@ -77,26 +79,34 @@ if __name__ == '__main__':
 	# Iniciando sniffer antes mesmo de enviar primeiro ping, para garantir que nao perdemos resposta
 	net_str = prepara_end_rede("%s"%(network.network))
 	flt = ("icmp and src net %s"%net_str)  # Filtro para pegar so respostas da rede que estamos varrendo
+	#print(flt)
 	sniffer = AsyncSniffer(prn=lambda x: x.summary(), filter=flt, count=len(l_ips),timeout=TOTAL_TIMEOUT)
 	sniffer.start()
 
 	# Vamos preparar e iniciar thread de envio dos pings 
 	t_ping = concurrent.futures.ThreadPoolExecutor(max_workers=1) 	# Pool de threads com 1 worker
-	s_results = t_ping.submit(meuping, l_ips) 						# Submetendo funcao ao pool de threads e inicia o mesmo
+	ping_results = t_ping.submit(meuping, l_ips) 						# Submetendo funcao ao pool de threads e inicia o mesmo
 
 	sniffer.join()  # Isso bloqueia o programa principal no sniffer, ate que todos os pacotes (count) sejam capturados, ou timeout aconteca
 
-	t_results = sniffer.results
+	sniff_results = sniffer.results
 
 	t_ping.shutdown(wait=True)		# Para programa ate thread que envia pings termine - para obter resultados.
 	
-	s_result_dict = s_results.result()
+	ping_result_dict = ping_results.result()
 
-	for i in range(len(t_results)):
-		#responding.append(t_results[i].result()[j])
-		print("Resposta de: %s em %3.2f ms"%(t_results[i][IP].src, t_results[i][IP].time - s_result_dict[t_results[i][IP].src]))  # t_results[i][IP].time
+	n_respostas = 0
+	for i in range(len(sniff_results)):
+		#responding.append(sniff_results[i].result()[j])
+		if (i == 0):
+			print("Resposta de: %s em %3.2f ms"%(sniff_results[i][IP].src, sniff_results[i][IP].time - ping_result_dict[sniff_results[i][IP].src]))  # sniff_results[i][IP].time
+			n_respostas += 1
+		elif (sniff_results[i][IP].src != sniff_results[i-1][IP].src):
+			print("Resposta de: %s em %3.2f ms"%(sniff_results[i][IP].src, sniff_results[i][IP].time - ping_result_dict[sniff_results[i][IP].src]))  # sniff_results[i][IP].time
+			n_respostas += 1
 		
-	print('[+] %d IPs responderam ICMP Echo.'%len(t_results))
+	#print('[+] %d IPs responderam ICMP Echo.'%len(sniff_results))
+	print('[+] %d IPs responderam ICMP Echo.'%n_respostas)
 	#print(responding)
 
 
