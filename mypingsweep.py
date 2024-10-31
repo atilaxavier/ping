@@ -101,7 +101,8 @@ if __name__ == '__main__':
 	flt = ("icmp and src net %s"%net_str)  # Filtro para pegar so respostas da rede que estamos varrendo
 	#print(flt)
 	#sniffer = AsyncSniffer(prn=lambda x: x.summary(), filter=flt, count=len(l_ips),timeout=TOTAL_TIMEOUT)
-	sniffer = AsyncSniffer(prn=lambda x: x.summary(), filter=flt, count=len(l_ips))
+	#sniffer = AsyncSniffer(prn=lambda x: x.summary(), filter=flt, count=len(l_ips))
+	sniffer = AsyncSniffer(prn=lambda x: x.summary(), filter=flt)
 
 	sniffer.start()
 
